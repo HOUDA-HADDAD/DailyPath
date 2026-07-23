@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* -------------------------------------------------------------------------
+   Tokens de couleur (canaux RGB séparés par des espaces, pour permettre
+   les modificateurs d'opacité Tailwind : ex. text-content/60).
+   Thème clair par défaut ; le thème sombre s'active via [data-theme="dark"].
+------------------------------------------------------------------------- */
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
+
+  --c-bg: 250 248 244; /* sand-50  */
+  --c-surface: 255 255 255; /* white    */
+  --c-surface-2: 243 246 244; /* sage-50  */
+  --c-border: 227 235 229; /* sage-100 */
+  --c-content: 42 42 40; /* ink-800  */
+  --c-content-muted: 106 108 102;
+  --c-primary: 65 101 78; /* sage-600 */
+  --c-primary-fg: 255 255 255;
+  --c-primary-soft: 243 246 244; /* sage-50  */
+  --c-primary-soft-fg: 44 66 53; /* sage-800 */
+  --c-danger: 220 38 38; /* red-600  */
+  --c-danger-soft: 254 242 242; /* red-50   */
+}
+
+:root[data-theme="dark"] {
+  --c-bg: 18 23 20; /* vert-encre profond */
+  --c-surface: 30 38 33;
+  --c-surface-2: 39 50 43;
+  --c-border: 52 66 56;
+  --c-content: 231 236 231;
+  --c-content-muted: 156 168 158;
+  --c-primary: 133 178 145; /* sage clair lisible sur fond sombre */
+  --c-primary-fg: 17 24 19; /* texte sombre sur bouton clair */
+  --c-primary-soft: 40 52 43;
+  --c-primary-soft-fg: 199 215 203; /* sage-200 */
+  --c-danger: 248 113 113; /* red-400 */
+  --c-danger-soft: 47 26 26;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-bg text-content antialiased;
+  font-family: var(--font-sans);
+}
+
+/* Respiration verticale par défaut sur les écrans */
+main {
+  min-height: 100dvh;
+}
