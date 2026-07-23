@@ -11,32 +11,54 @@
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
 
-  --c-bg: 250 248 244; /* sand-50  */
-  --c-surface: 255 255 255; /* white    */
-  --c-surface-2: 243 246 244; /* sage-50  */
-  --c-border: 227 235 229; /* sage-100 */
-  --c-content: 42 42 40; /* ink-800  */
-  --c-content-muted: 106 108 102;
-  --c-primary: 65 101 78; /* sage-600 */
+  /* Fond */
+  --c-bg: 250 248 252;
+  --c-surface: 255 255 255;
+  --c-surface-2: 245 242 250;
+
+  /* Bordures */
+  --c-border: 232 225 240;
+
+  /* Texte */
+  --c-content: 59 51 69;
+  --c-content-muted: 112 102 125;
+
+  /* Couleur principale */
+  --c-primary: 107 76 154; /* #6b4c9a */
   --c-primary-fg: 255 255 255;
-  --c-primary-soft: 243 246 244; /* sage-50  */
-  --c-primary-soft-fg: 44 66 53; /* sage-800 */
-  --c-danger: 220 38 38; /* red-600  */
-  --c-danger-soft: 254 242 242; /* red-50   */
+
+  /* Variantes */
+  --c-primary-soft: 245 242 250;
+  --c-primary-soft-fg: 75 55 108;
+
+  /* Danger */
+  --c-danger: 220 38 38;
+  --c-danger-soft: 254 242 242;
 }
 
 :root[data-theme="dark"] {
-  --c-bg: 18 23 20; /* vert-encre profond */
-  --c-surface: 30 38 33;
-  --c-surface-2: 39 50 43;
-  --c-border: 52 66 56;
-  --c-content: 231 236 231;
-  --c-content-muted: 156 168 158;
-  --c-primary: 133 178 145; /* sage clair lisible sur fond sombre */
-  --c-primary-fg: 17 24 19; /* texte sombre sur bouton clair */
-  --c-primary-soft: 40 52 43;
-  --c-primary-soft-fg: 199 215 203; /* sage-200 */
-  --c-danger: 248 113 113; /* red-400 */
+  /* Fond */
+  --c-bg: 24 20 31;
+  --c-surface: 33 27 41;
+  --c-surface-2: 43 35 53;
+
+  /* Bordures */
+  --c-border: 69 57 86;
+
+  /* Texte */
+  --c-content: 232 222 245;
+  --c-content-muted: 184 169 201;
+
+  /* Couleur principale */
+  --c-primary: 176 138 217; /* #b08ad9 */
+  --c-primary-fg: 24 20 31;
+
+  /* Variantes */
+  --c-primary-soft: 42 34 51;
+  --c-primary-soft-fg: 210 194 230;
+
+  /* Danger */
+  --c-danger: 248 113 113;
   --c-danger-soft: 47 26 26;
 }
 
