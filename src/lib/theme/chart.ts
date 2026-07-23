@@ -20,27 +20,27 @@ export interface ChartColors {
 }
 
 const LIGHT: ChartColors = {
-  text: "#3a3a37",
-  grid: "#e3ebe5",
+  text: "#3b3345",
+  grid: "#e8e1f0",
   tooltipBg: "#ffffff",
-  tooltipBorder: "#e3ebe5",
-  barCurrent: "#41654e",
-  barPrevious: "#a1bca8",
-  line: "#41654e",
-  areaStop: "#557d63",
-  breakdown: ["#c7d7cb", "#a1bca8", "#749b7f", "#557d63", "#41654e"],
+  tooltipBorder: "#e8e1f0",
+  barCurrent: "#6b4c9a",
+  barPrevious: "#c2acd9",
+  line: "#6b4c9a",
+  areaStop: "#8565b5",
+  breakdown: ["#ddd0ed", "#c2acd9", "#a486c7", "#8565b5", "#6b4c9a"],
 };
 
 const DARK: ChartColors = {
-  text: "#9caa9e",
-  grid: "#2f3a33",
-  tooltipBg: "#1e2621",
-  tooltipBorder: "#34423a",
-  barCurrent: "#85b291",
-  barPrevious: "#4a6b56",
-  line: "#85b291",
-  areaStop: "#85b291",
-  breakdown: ["#3a4d40", "#4a6b56", "#5f8a6c", "#7aa787", "#95c2a2"],
+  text: "#b8a9c9",
+  grid: "#342b3d",
+  tooltipBg: "#211b29",
+  tooltipBorder: "#453956",
+  barCurrent: "#b08ad9",
+  barPrevious: "#62447f",
+  line: "#b08ad9",
+  areaStop: "#b08ad9",
+  breakdown: ["#3d3048", "#62447f", "#7d5ca0", "#9874bb", "#c09ae8"],
 };
 
 export function useChartColors(): ChartColors {
