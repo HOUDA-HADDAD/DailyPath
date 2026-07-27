@@ -1,13 +1,10 @@
-// Scoring générique, piloté par la configuration des activités.
-// Aucune activité n'est "codée en dur" ici : tout dérive de config.ts.
+// Scoring générique, piloté par la liste d'activités fournie.
+// Aucune activité n'est « codée en dur » : les fonctions acceptent la liste
+// dynamique de l'utilisateur, et retombent sur le catalogue par défaut si
+// aucune liste n'est fournie (compatibilité ascendante).
 
 import type { FormValues, ActivityValue } from "@/lib/types";
-import {
-  ACTIVITIES,
-  completionActivities,
-  activitiesByCategory,
-  type ActivityConfig,
-} from "./config";
+import { ACTIVITIES, CATEGORIES, type ActivityConfig } from "./config";
 
 /**
  * Score d'une activité pour une valeur donnée, entre 0 et 1.
@@ -38,49 +35,59 @@ export function activityScore(
   }
 }
 
-/**
- * Taux de complétion quotidien global (0..1), pondéré, sur les activités
- * marquées countsInCompletion. Une valeur non renseignée compte comme 0.
- */
-export function dailyCompletion(values: FormValues): number {
-  const acts = completionActivities();
-  const totalWeight = acts.reduce((s, a) => s + a.weight, 0);
+/** Moyenne pondérée d'un sous-ensemble d'activités (valeur absente = 0). */
+function weightedMean(
+  activities: ActivityConfig[],
+  values: FormValues,
+): number {
+  const totalWeight = activities.reduce((s, a) => s + a.weight, 0);
   if (totalWeight === 0) return 0;
-
-  const sum = acts.reduce((s, a) => {
+  const sum = activities.reduce((s, a) => {
     const score = activityScore(a, values[a.id]) ?? 0;
     return s + score * a.weight;
   }, 0);
-
   return sum / totalWeight;
 }
 
 /**
- * Score d'une catégorie pour une journée (0..1), moyenne pondérée des
- * activités de la catégorie (valeur non renseignée = 0).
+ * Taux de complétion quotidien global (0..1), pondéré, sur les activités
+ * marquées countsInCompletion.
  */
+export function dailyCompletion(
+  values: FormValues,
+  activities: ActivityConfig[] = ACTIVITIES,
+): number {
+  return weightedMean(
+    activities.filter((a) => a.countsInCompletion),
+    values,
+  );
+}
+
+/** Score d'une catégorie pour une journée (0..1). */
 export function categoryScoreForDay(
   categoryId: string,
   values: FormValues,
+  activities: ActivityConfig[] = ACTIVITIES,
 ): number {
-  const acts = activitiesByCategory(categoryId);
-  const totalWeight = acts.reduce((s, a) => s + a.weight, 0);
-  if (totalWeight === 0) return 0;
-
-  const sum = acts.reduce((s, a) => {
-    const score = activityScore(a, values[a.id]) ?? 0;
-    return s + score * a.weight;
-  }, 0);
-
-  return sum / totalWeight;
+  return weightedMean(
+    activities.filter((a) => a.category === categoryId),
+    values,
+  );
 }
 
-/** Score d'une activité précise pour une journée (0..1, null si non renseignée). */
-export function activityScoreForDay(
-  activityId: string,
-  values: FormValues,
-): number | null {
-  const activity = ACTIVITIES.find((a) => a.id === activityId);
-  if (!activity) return null;
-  return activityScore(activity, values[activityId]);
+/**
+ * Catégories réellement présentes dans une liste d'activités, ordonnées :
+ * d'abord celles du catalogue (dans leur ordre défini), puis les catégories
+ * personnalisées par ordre alphabétique.
+ */
+export function categoriesFrom(
+  activities: ActivityConfig[] = ACTIVITIES,
+): string[] {
+  const present = new Set(activities.map((a) => a.category));
+  const known = [...CATEGORIES]
+    .sort((a, b) => a.order - b.order)
+    .map((c) => c.id)
+    .filter((id) => present.has(id));
+  const custom = [...present].filter((id) => !known.includes(id)).sort();
+  return [...known, ...custom];
 }

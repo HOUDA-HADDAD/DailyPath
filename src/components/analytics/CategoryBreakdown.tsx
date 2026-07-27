@@ -13,13 +13,14 @@ import {
 import type { CategoryScore } from "@/lib/analytics/compute";
 import { useTranslation } from "@/lib/i18n";
 import { useChartColors, breakdownBucket } from "@/lib/theme/chart";
+import { categoryLabel } from "@/lib/activities/labels";
 
 export function CategoryBreakdown({ data }: { data: CategoryScore[] }) {
   const { t } = useTranslation();
   const c = useChartColors();
 
   const chartData = data.map((d) => ({
-    name: t(`categories.${d.category}`),
+    name: categoryLabel(d.category, t),
     value: d.value,
   }));
 

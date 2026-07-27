@@ -221,25 +221,9 @@ export const ACTIVITIES: ActivityConfig[] = [
 ];
 
 // -----------------------------------------------------------------------------
-// Helpers de lecture
+// Note : les helpers de lecture qui opéraient sur cette liste statique ont été
+// retirés. La liste affichée est désormais celle de l'utilisateur (table
+// user_activities) ; utilisez les fonctions équivalentes de `scoring.ts`
+// (`categoriesFrom`) et de `recurrence.ts` (`activitiesForDate`), qui prennent
+// la liste en paramètre.
 // -----------------------------------------------------------------------------
-export const ACTIVITY_BY_ID: Record<string, ActivityConfig> = Object.fromEntries(
-  ACTIVITIES.map((a) => [a.id, a]),
-);
-
-export function getActivity(id: string): ActivityConfig | undefined {
-  return ACTIVITY_BY_ID[id];
-}
-
-export function orderedCategories(): CategoryConfig[] {
-  return [...CATEGORIES].sort((a, b) => a.order - b.order);
-}
-
-export function activitiesByCategory(categoryId: string): ActivityConfig[] {
-  return ACTIVITIES.filter((a) => a.category === categoryId);
-}
-
-/** Activités qui comptent dans le taux de complétion quotidien. */
-export function completionActivities(): ActivityConfig[] {
-  return ACTIVITIES.filter((a) => a.countsInCompletion);
-}

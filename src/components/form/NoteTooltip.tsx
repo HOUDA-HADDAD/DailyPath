@@ -1,29 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { activityNote } from "@/lib/activities/labels";
+import type { UserActivity } from "@/lib/activities/types";
 
 /**
  * Info-bulle explicative à côté d'une activité.
- * Le texte vient des dictionnaires i18n sous `notes.<activityId>`.
- * Ces notes sont VOLONTAIREMENT VIDES pour l'instant : dès que vous les
- * remplissez dans en.ts / ar.ts, l'icône (i) apparaît automatiquement ici.
+ * Le texte vient de la note personnalisée de l'activité, sinon des
+ * dictionnaires i18n (`notes.<activityId>`). Tant qu'aucune note n'est
+ * renseignée, l'icône n'apparaît pas — pas de bruit visuel inutile.
  */
-export function NoteTooltip({ activityId }: { activityId: string }) {
+export function NoteTooltip({ activity }: { activity: UserActivity }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const note = t(`notes.${activityId}`).trim();
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const note = activityNote(activity, t).trim();
 
-  // Pas de note renseignée -> rien à afficher (structure prête pour plus tard).
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   if (!note) return null;
 
   return (
-    <span className="relative inline-flex">
+    <span ref={containerRef} className="relative inline-flex">
       <button
         type="button"
         aria-label={t("form.noteLabel")}
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] font-semibold text-primary hover:bg-surface-2"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] font-semibold text-primary hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         i
       </button>

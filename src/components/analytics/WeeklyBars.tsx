@@ -13,13 +13,14 @@ import {
 import type { CategoryWeekly } from "@/lib/analytics/compute";
 import { useTranslation } from "@/lib/i18n";
 import { useChartColors } from "@/lib/theme/chart";
+import { categoryLabel } from "@/lib/activities/labels";
 
 export function WeeklyBars({ data }: { data: CategoryWeekly[] }) {
   const { t } = useTranslation();
   const c = useChartColors();
 
   const chartData = data.map((d) => ({
-    name: t(`categories.${d.category}`),
+    name: categoryLabel(d.category, t),
     current: d.current,
     previous: d.previous,
   }));
