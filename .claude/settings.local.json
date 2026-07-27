@@ -8,7 +8,10 @@
       "Bash(gh auth *)",
       "PowerShell($gh = Get-Command gh -ErrorAction SilentlyContinue; if \\($gh\\) { Write-Output \"gh found: $\\($gh.Source\\)\"; gh auth status } else { Write-Output \"gh NOT installed\" })",
       "Bash(git checkout *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "PowerShell($paths = @\\(\"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\", \"${env:ProgramFiles\\(x86\\)}\\\\GitHub CLI\\\\gh.exe\", \"$env:LOCALAPPDATA\\\\Programs\\\\GitHub CLI\\\\gh.exe\", \"$env:LOCALAPPDATA\\\\GitHubCLI\\\\gh.exe\"\\); $found = $paths | Where-Object { Test-Path $_ }; if \\($found\\) { Write-Output \"FOUND: $found\" } else { Write-Output \"gh.exe not present in standard install locations\" }; winget --version 2>$null)"
     ]
   }
 }
