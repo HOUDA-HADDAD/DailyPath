@@ -1,13 +1,19 @@
 // Conversion générique entre la ligne DB (daily_entries) et les valeurs
-// normalisées du formulaire (FormValues), pilotée par la config des activités.
+// normalisées du formulaire (FormValues), pilotée par la liste d'activités.
+//
+// Les activités par défaut écrivent dans leurs colonnes dédiées (données
+// historiques préservées) ; les activités créées par l'utilisateur écrivent
+// dans la colonne `responses` (jsonb) — aucune migration nécessaire.
 
 import type { DailyEntryRow, FormValues, ActivityValue } from "@/lib/types";
 import { ACTIVITIES, type ActivityConfig } from "./config";
 
 /** Valeurs initiales d'un formulaire vierge (nouvelle journée). */
-export function emptyFormValues(): FormValues {
+export function emptyFormValues(
+  activities: ActivityConfig[] = ACTIVITIES,
+): FormValues {
   const values: FormValues = {};
-  for (const a of ACTIVITIES) {
+  for (const a of activities) {
     values[a.id] = defaultValue(a);
   }
   return values;
@@ -27,11 +33,14 @@ function defaultValue(a: ActivityConfig): ActivityValue {
 }
 
 /** DB -> formulaire : reconstruit les valeurs à partir d'une ligne existante. */
-export function rowToFormValues(row: Partial<DailyEntryRow>): FormValues {
+export function rowToFormValues(
+  row: Partial<DailyEntryRow>,
+  activities: ActivityConfig[] = ACTIVITIES,
+): FormValues {
   const responses = (row.responses as Record<string, unknown>) ?? {};
   const values: FormValues = {};
 
-  for (const a of ACTIVITIES) {
+  for (const a of activities) {
     const s = a.storage;
     switch (s.kind) {
       case "columns": {
@@ -59,7 +68,8 @@ export function rowToFormValues(row: Partial<DailyEntryRow>): FormValues {
         break;
       }
       case "jsonb_key": {
-        values[a.id] = (responses[s.key] as ActivityValue) ?? defaultValue(a);
+        const raw = responses[s.key];
+        values[a.id] = (raw as ActivityValue) ?? defaultValue(a);
         break;
       }
     }
@@ -68,14 +78,21 @@ export function rowToFormValues(row: Partial<DailyEntryRow>): FormValues {
 }
 
 /**
- * Formulaire -> DB : construit l'objet à "upsert" dans daily_entries.
- * Retourne un objet partiel (colonnes + responses), sans user_id ni date.
+ * Formulaire -> DB : construit l'objet à « upsert » dans daily_entries.
+ *
+ * `existingResponses` permet de préserver les réponses d'activités qui ne sont
+ * pas dans la liste courante (activité désactivée, non programmée ce jour-là,
+ * ou supprimée) : on ne détruit jamais silencieusement l'historique.
  */
-export function formValuesToRow(values: FormValues): Record<string, unknown> {
+export function formValuesToRow(
+  values: FormValues,
+  activities: ActivityConfig[] = ACTIVITIES,
+  existingResponses: Record<string, unknown> = {},
+): Record<string, unknown> {
   const row: Record<string, unknown> = {};
-  const responses: Record<string, unknown> = {};
+  const responses: Record<string, unknown> = { ...existingResponses };
 
-  for (const a of ACTIVITIES) {
+  for (const a of activities) {
     const value = values[a.id];
     const s = a.storage;
     switch (s.kind) {

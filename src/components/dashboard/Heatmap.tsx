@@ -11,14 +11,14 @@ interface Props {
   weeks?: number;
 }
 
-// L'intensité s'inverse en thème sombre (plus rempli = vert plus lumineux),
-// pour rester lisible sur fond foncé.
+// Intensité dérivée de la couleur principale : la frise suit automatiquement
+// le thème (clair/sombre) ET tout changement de palette, sans retouche ici.
 const LEVEL_CLASSES = [
   "bg-surface-2", // 0 : aucune entrée
-  "bg-sage-200 dark:bg-sage-800", // >0..0.25
-  "bg-sage-300 dark:bg-sage-700", // 0.25..0.5
-  "bg-sage-400 dark:bg-sage-500", // 0.5..0.75
-  "bg-sage-600 dark:bg-sage-300", // 0.75..1
+  "bg-primary/20", // >0..0.25
+  "bg-primary/40", // 0.25..0.5
+  "bg-primary/65", // 0.5..0.75
+  "bg-primary", // 0.75..1
 ];
 
 function levelFor(c: number | undefined): number {

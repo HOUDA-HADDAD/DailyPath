@@ -3,7 +3,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailyEntryRow, FormValues } from "@/lib/types";
-import { formValuesToRow } from "@/lib/activities";
+import { formValuesToRow, type ActivityConfig } from "@/lib/activities";
 
 export async function fetchEntryByDate(
   supabase: SupabaseClient,
@@ -42,15 +42,20 @@ export async function fetchEntriesBetween(
 /**
  * Crée ou met à jour l'entrée du jour (une seule par user_id + date grâce à
  * la contrainte unique). L'upsert gère automatiquement le mode édition.
+ *
+ * `existingResponses` évite d'écraser les réponses d'activités absentes de la
+ * liste courante (désactivées, non programmées ce jour-là, supprimées).
  */
 export async function upsertEntry(
   supabase: SupabaseClient,
   userId: string,
   dateISO: string,
   values: FormValues,
+  activities: ActivityConfig[],
+  existingResponses: Record<string, unknown> = {},
 ): Promise<void> {
   const row = {
-    ...formValuesToRow(values),
+    ...formValuesToRow(values, activities, existingResponses),
     user_id: userId,
     entry_date: dateISO,
   };

@@ -5,10 +5,15 @@ jour son suivi personnel (prières, wird, adhkar, lecture, sport, repos, silence
 avec **compte individuel**, **données privées** (Row Level Security), **heatmap**,
 **série de jours consécutifs**, et **analyses hebdomadaires / annuelles**.
 
+- **Suivi entièrement personnalisable** : chaque membre compose sa propre liste
+  d'activités (création, icône, couleur, ordre, récurrence, rappel) depuis
+  Profil → Réglages
+- **Compte** : inscription, connexion et **récupération de mot de passe**
 - **Frontend** : Next.js 14 (App Router) + React + Tailwind CSS
 - **Backend** : Supabase (Postgres + Auth + RLS)
-- **Graphiques** : Recharts
+- **Graphiques** : Recharts (chargés à la demande)
 - **Langues** : arabe (RTL) et anglais (LTR), bascule instantanée
+- **Thème** : clair / sombre
 - **Hébergement** : Vercel (plan gratuit), déployé depuis GitHub
 
 > 100 % gratuit pour un groupe : le plan gratuit Supabase (jusqu'à ~50 000 MAU,
@@ -20,28 +25,51 @@ avec **compte individuel**, **données privées** (Row Level Security), **heatma
 
 ```
 src/
-├── app/                     # Pages (App Router)
-│   ├── login, signup        # Authentification email + mot de passe
-│   ├── (app)/               # Zone protégée (garde d'auth dans le layout)
-│   │   ├── today            # Formulaire du jour (créer / éditer)
-│   │   ├── dashboard        # Heatmap + streak + derniers jours
-│   │   ├── analytics/weekly # Analyse hebdomadaire
-│   │   ├── analytics/yearly # Analyse mensuelle / annuelle
-│   │   ├── profile          # Nom affiché + langue
-│   │   └── admin            # Vue admin (désactivée par défaut)
-│   └── auth/callback        # Retour de confirmation d'email
-├── components/              # UI réutilisable (form, dashboard, analytics…)
+├── app/                        # Pages (App Router)
+│   ├── login, signup           # Authentification email + mot de passe
+│   ├── forgot-password         # Demande de réinitialisation
+│   ├── reset-password          # Choix du nouveau mot de passe
+│   ├── (app)/                  # Zone protégée (garde d'auth dans le layout)
+│   │   ├── today               # Formulaire du jour (créer / éditer)
+│   │   ├── dashboard           # Heatmap + streak + derniers jours
+│   │   ├── analytics/weekly    # Analyse hebdomadaire
+│   │   ├── analytics/yearly    # Analyse mensuelle / annuelle
+│   │   ├── profile             # Identité du compte
+│   │   ├── profile/settings    # ★ Réglages : activités, langue, thème
+│   │   └── admin               # Vue admin (désactivée par défaut)
+│   └── auth/callback           # Retour des liens email (confirmation, reset)
+├── components/
+│   ├── ui/                     # Primitives (Button, Modal, Icon, Skeleton…)
+│   ├── form/                   # Formulaire du jour
+│   ├── settings/               # Gestion des activités + aperçu
+│   ├── dashboard/, analytics/  # Visualisations
+│   └── auth/, layout/
 └── lib/
-    ├── activities/          # ★ config.ts = SOURCE UNIQUE des activités
-    ├── analytics/           # Calculs streak / hebdo / annuel
-    ├── i18n/                # Dictionnaires en/ar + provider RTL/LTR
-    ├── supabase/            # Clients navigateur / serveur / middleware
-    └── entries.ts           # Accès données daily_entries
+    ├── activities/             # ★ Cœur du domaine (voir ci-dessous)
+    ├── analytics/              # Calculs streak / hebdo / annuel
+    ├── i18n/                   # Dictionnaires en/ar + provider RTL/LTR
+    ├── theme/                  # Thème clair/sombre, accents, couleurs graphiques
+    ├── reminders/              # Rappels locaux
+    ├── supabase/               # Clients navigateur / serveur / middleware
+    ├── validation.ts           # Validation des saisies
+    └── entries.ts              # Accès données daily_entries
 ```
 
-**Le point clé** : `src/lib/activities/config.ts` décrit toutes les activités.
-Le formulaire, le scoring, le dashboard et les analyses en découlent. **Ajouter
-une habitude ne demande pas de reconstruire l'app** (voir §7).
+**Le point clé** — `src/lib/activities/` :
+
+| Fichier | Rôle |
+|---|---|
+| `config.ts` | Catalogue **par défaut** (semé au premier usage) |
+| `types.ts` | `UserActivity` **étend** `ActivityConfig` + présentation/planning |
+| `store.ts` | CRUD Supabase (créer, modifier, supprimer, réordonner, restaurer) |
+| `provider.tsx` | État partagé : réglages et « Aujourd'hui » restent synchronisés |
+| `recurrence.ts` | Quelles activités sont dues à une date donnée |
+| `serialization.ts` | Formulaire ⇄ base, piloté par le `storage` de chaque activité |
+| `scoring.ts` | Taux de complétion, scores par catégorie |
+
+Comme `UserActivity` étend `ActivityConfig`, le moteur (sérialisation, scoring,
+analyses) accepte la liste dynamique **sans modification** : seule la liste
+change, jamais le contrat.
 
 ---
 
@@ -58,13 +86,22 @@ une habitude ne demande pas de reconstruire l'app** (voir §7).
 
 Dans Supabase → **SQL Editor** → **New query** :
 
-1. Copier/coller **tout** le contenu de
-   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) →
-   **Run**. Cela crée les tables `profiles` et `daily_entries`, les types enum,
-   les triggers et **toutes les policies RLS**.
-2. (Optionnel, pour la vue admin) Coller
-   [`supabase/migrations/0002_admin.sql`](supabase/migrations/0002_admin.sql) →
-   **Run**. Inerte tant qu'aucun admin n'est désigné (voir §6).
+Exécuter les fichiers **dans l'ordre**, un par un :
+
+1. [`0001_init.sql`](supabase/migrations/0001_init.sql) → **Run**.
+   Crée `profiles` et `daily_entries`, les types enum, les triggers et
+   **toutes les policies RLS**.
+2. [`0003_user_activities.sql`](supabase/migrations/0003_user_activities.sql) →
+   **Run**. Crée `user_activities` : la liste d'activités **propre à chaque
+   utilisateur** (obligatoire pour l'écran « Aujourd'hui » et les réglages).
+3. (Optionnel, vue admin) [`0002_admin.sql`](supabase/migrations/0002_admin.sql)
+   puis [`0004_admin_simplify.sql`](supabase/migrations/0004_admin_simplify.sql)
+   → **Run**. Inertes tant qu'aucun admin n'est désigné (voir §6).
+
+> Mise à jour d'une installation existante : il suffit de jouer `0003` (et
+> `0004` si la vue admin est utilisée). Aucune donnée n'est perdue — les
+> activités d'origine gardent leurs colonnes, et le catalogue par défaut est
+> semé automatiquement à la première connexion de chaque membre.
 
 ### Réglages « Security » (Settings → API / Database)
 
@@ -78,6 +115,20 @@ Dans Supabase → **SQL Editor** → **New query** :
 > Rappel : la sécurité réelle vient des **policies RLS** (chaque utilisateur ne
 > voit que ses lignes). Les `GRANT` ne font qu'« exposer » la table à l'API ;
 > RLS filtre ensuite ligne par ligne. Le rôle `anon` (déconnecté) n'a aucun accès.
+
+### Mot de passe oublié
+
+Le parcours complet est intégré : lien « Mot de passe oublié ? » sur la
+connexion → email de réinitialisation → `/auth/callback` → `/reset-password`
+(validation, indicateur de robustesse, gestion du lien expiré).
+
+Pour qu'il fonctionne en production, **Authentication → URL Configuration** doit
+lister `https://<votre-domaine>/auth/callback` dans **Redirect URLs** (voir §6).
+En local, `http://localhost:3000/auth/callback` doit y figurer aussi.
+
+> Sécurité : la confirmation affichée est identique que l'adresse existe ou non
+> (pas d'énumération de comptes), et le paramètre `next` du callback est
+> restreint aux chemins internes (pas de redirection ouverte).
 
 ### Confirmation d'email (recommandé pour un petit groupe : la désactiver)
 
@@ -117,6 +168,14 @@ Scripts utiles :
 npm run typecheck   # vérification TypeScript
 npm run build       # build de production
 ```
+
+> **Windows + OneDrive** : ce projet est dans un dossier synchronisé. La
+> synchronisation verrouille parfois `.next` et fait échouer `next dev` /
+> `next build` (`EBUSY`, `EINVAL: readlink`). Si cela arrive, supprimez `.next`
+> et relancez. Pour éviter le problème durablement, excluez `.next` et
+> `node_modules` de la synchronisation OneDrive (clic droit → « Toujours
+> conserver sur cet appareil » désactivé / paramètres OneDrive → dossiers
+> exclus), ou déplacez le projet hors de OneDrive.
 
 ---
 
@@ -164,25 +223,37 @@ La page `/admin` affiche des statistiques **agrégées et anonymisées** du grou
 
 ## 8. Personnaliser / étendre
 
+### Personnaliser ses activités (depuis l'application)
+
+**Profil → Réglages → Suivi du jour** permet à chaque membre, sans
+toucher au code, de : créer / modifier / supprimer une activité, l'activer ou
+la désactiver, la réordonner, choisir son icône et sa couleur, définir un
+rappel et une récurrence (tous les jours ou certains jours), rédiger la note
+explicative, et **rétablir la configuration d'origine**. Les changements sont
+visibles immédiatement sur « Aujourd'hui ».
+
+- Les activités d'origine gardent leurs **colonnes dédiées** → historique et
+  analyses préservés.
+- Les activités créées par l'utilisateur sont rangées dans la colonne
+  `responses` (jsonb) → **aucune migration** n'est nécessaire.
+- Supprimer une activité ne supprime jamais les journées déjà enregistrées.
+
 ### Remplir les notes explicatives (info-bulles)
 
-Chaque activité a une note explicative **laissée vide volontairement**.
-Renseignez-les dans les dictionnaires — l'icône ⓘ apparaîtra automatiquement :
+Deux possibilités :
 
-- Anglais : `src/lib/i18n/dictionaries/en.ts` → objet `notes`
-- Arabe : `src/lib/i18n/dictionaries/ar.ts` → objet `notes`
+- **Depuis l'app** (recommandé) : Profil → Réglages → modifier une activité →
+  champ « Explication ». La note est propre à chaque utilisateur.
+- **Par défaut pour tout le monde** : dictionnaires `notes` dans
+  `src/lib/i18n/dictionaries/en.ts` et `ar.ts`. L'icône ⓘ n'apparaît que
+  lorsqu'une note existe.
 
-### Ajouter une nouvelle activité
+### Modifier le catalogue par défaut (pour les nouveaux membres)
 
-1. Ajouter un objet dans `ACTIVITIES` (`src/lib/activities/config.ts`).
-   - Stockage **sans migration** : `storage: { kind: "jsonb_key", key: "mon_id" }`
-     (rangé dans la colonne `responses` déjà présente).
-   - Stockage en **colonne dédiée** : ajouter la colonne via une migration SQL
-     puis utiliser `enum_column` / `boolean_column` / `columns` / `jsonb_array`.
-2. Ajouter les libellés (`activities`, éventuelles `options`, `notes`) dans
-   `en.ts` et `ar.ts`.
-
-Le formulaire, le scoring, le dashboard et les analyses se mettent à jour seuls.
+`src/lib/activities/config.ts` définit le catalogue **semé au premier usage**,
+et `src/lib/activities/defaults.ts` son icône/couleur par défaut. Modifier ces
+fichiers change ce que reçoivent les nouveaux comptes ; les membres existants
+gardent leur liste (ou peuvent la réinitialiser depuis les réglages).
 
 ### Ajouter une langue
 
@@ -213,4 +284,11 @@ passent par des **tokens sémantiques** (`bg`, `surface`, `content`, `border`,
 `rest` (enum healthy/draining/none), `silence` (booléen), `responses` (jsonb
 d'extension), `created_at`, `updated_at`, **contrainte unique `(user_id, entry_date)`**.
 
-RLS : chaque utilisateur ne peut lire/écrire que ses propres lignes.
+`user_activities` (migration 0003) : la liste d'activités propre à chaque
+utilisateur — `activity_key`, `label`, `note`, `type`, `options` / `scale`,
+`icon`, `color`, `sort_order`, `enabled`, `required`, `weight`, `storage`
+(où ranger la réponse dans `daily_entries`), `is_builtin`, `reminder_enabled`,
+`reminder_time`, `recurrence`, **contrainte unique `(user_id, activity_key)`**.
+
+RLS : chaque utilisateur ne peut lire/écrire que ses propres lignes, sur les
+trois tables.

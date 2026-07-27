@@ -1,22 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n";
-import type { Locale } from "@/lib/i18n/config";
-import { Card, CardTitle } from "@/components/ui/Card";
+import { validateDisplayName, DISPLAY_NAME_MAX_LENGTH } from "@/lib/validation";
+import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { Input, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/cn";
+import { Alert } from "@/components/ui/Alert";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import { Icon } from "@/components/ui/Icon";
 
 export default function ProfilePage() {
-  const { t, locale, setLocale } = useTranslation();
+  const { t } = useTranslation();
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,28 +49,38 @@ export default function ProfilePage() {
 
   async function save() {
     if (!userId) return;
+    const invalid = validateDisplayName(displayName);
+    if (invalid) {
+      setError(t(invalid));
+      return;
+    }
+    setError(null);
     setSaving(true);
     setSaved(false);
     const supabase = createClient();
-    await supabase
+    const { error: updateError } = await supabase
       .from("profiles")
-      .update({ display_name: displayName, locale })
+      .update({ display_name: displayName.trim() })
       .eq("id", userId);
     setSaving(false);
+    if (updateError) {
+      setError(t("common.error"));
+      return;
+    }
     setSaved(true);
   }
 
-  const languages: { value: Locale; label: string }[] = [
-    { value: "en", label: t("profile.languageEn") },
-    { value: "ar", label: t("profile.languageAr") },
-  ];
-
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-content">{t("profile.title")}</h1>
+      <header>
+        <h1 className="text-xl font-semibold text-content">
+          {t("profile.title")}
+        </h1>
+        <p className="text-sm text-content-muted">{t("profile.subtitle")}</p>
+      </header>
 
       {loading ? (
-        <p className="text-sm text-content-muted">{t("common.loading")}</p>
+        <SkeletonCard lines={3} />
       ) : (
         <>
           <Card className="space-y-4">
@@ -75,7 +89,11 @@ export default function ProfilePage() {
               <Input
                 id="displayName"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={DISPLAY_NAME_MAX_LENGTH}
+                onChange={(e) => {
+                  setDisplayName(e.target.value);
+                  setSaved(false);
+                }}
               />
               <p className="mt-1 text-xs text-content-muted">
                 {t("profile.displayNameHelp")}
@@ -83,45 +101,40 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <Label>{t("profile.language")}</Label>
-              <div className="flex gap-2">
-                {languages.map((l) => (
-                  <button
-                    key={l.value}
-                    type="button"
-                    onClick={() => setLocale(l.value)}
-                    className={cn(
-                      "rounded-xl border px-4 py-2 text-sm transition-colors",
-                      locale === l.value
-                        ? "border-primary bg-primary text-primary-fg"
-                        : "border-border bg-surface text-content hover:bg-surface-2",
-                    )}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
+              <Label htmlFor="email">{t("profile.emailLabel")}</Label>
+              <Input id="email" value={email} disabled readOnly />
             </div>
+
+            {error && <Alert tone="danger">{error}</Alert>}
 
             <div className="flex items-center gap-3">
               <Button onClick={save} disabled={saving}>
                 {saving ? t("common.saving") : t("profile.saveProfile")}
               </Button>
-              {saved && (
-                <span className="text-sm text-primary">
-                  {t("profile.savedToast")}
-                </span>
-              )}
+              <span aria-live="polite" className="text-sm text-primary">
+                {saved ? t("profile.savedToast") : ""}
+              </span>
             </div>
           </Card>
 
-          <Card>
-            <CardTitle>{t("profile.account")}</CardTitle>
-            <div className="mt-3">
-              <Label>{t("profile.emailLabel")}</Label>
-              <Input value={email} disabled readOnly />
+          {/* Passerelle vers les réglages : on annonce la valeur avant le clic. */}
+          <Link
+            href="/profile/settings"
+            className="block rounded-2xl border border-border bg-surface p-5 transition-colors hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon name="target" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <CardTitle>{t("settings.title")}</CardTitle>
+                <CardSubtitle>{t("settings.entrySubtitle")}</CardSubtitle>
+              </div>
+              <span aria-hidden="true" className="text-content-muted rtl:rotate-180">
+                →
+              </span>
             </div>
-          </Card>
+          </Link>
         </>
       )}
     </div>

@@ -1,5 +1,6 @@
 // Calculs d'analyse (streak, heatmap, hebdo, tendance annuelle).
-// Tout dérive de la config des activités via le scoring générique.
+// Tout dérive de la liste d'activités fournie (celle de l'utilisateur), via le
+// scoring générique. Par défaut : le catalogue d'origine.
 
 import {
   format,
@@ -11,25 +12,35 @@ import {
 } from "date-fns";
 import type { DailyEntryRow, FormValues } from "@/lib/types";
 import {
+  ACTIVITIES,
   rowToFormValues,
   dailyCompletion,
   categoryScoreForDay,
-  orderedCategories,
+  categoriesFrom,
+  type ActivityConfig,
 } from "@/lib/activities";
 import { todayISO, lastNDaysISO, toISODate } from "@/lib/dates";
 
 // -----------------------------------------------------------------------------
 // Bases : valeurs et complétion par date
 // -----------------------------------------------------------------------------
-export function valuesByDate(entries: DailyEntryRow[]): Map<string, FormValues> {
+export function valuesByDate(
+  entries: DailyEntryRow[],
+  activities: ActivityConfig[] = ACTIVITIES,
+): Map<string, FormValues> {
   const map = new Map<string, FormValues>();
-  for (const e of entries) map.set(e.entry_date, rowToFormValues(e));
+  for (const e of entries) map.set(e.entry_date, rowToFormValues(e, activities));
   return map;
 }
 
-export function completionByDate(entries: DailyEntryRow[]): Map<string, number> {
+export function completionByDate(
+  entries: DailyEntryRow[],
+  activities: ActivityConfig[] = ACTIVITIES,
+): Map<string, number> {
   const map = new Map<string, number>();
-  for (const e of entries) map.set(e.entry_date, dailyCompletion(rowToFormValues(e)));
+  for (const e of entries) {
+    map.set(e.entry_date, dailyCompletion(rowToFormValues(e, activities), activities));
+  }
   return map;
 }
 
@@ -57,11 +68,23 @@ export function computeStreak(
   return streak;
 }
 
-// -----------------------------------------------------------------------------
-// Heatmap : date -> complétion (0..1) pour les jours remplis
-// -----------------------------------------------------------------------------
-export function heatmapMap(entries: DailyEntryRow[]): Map<string, number> {
-  return completionByDate(entries);
+/** Meilleure série jamais atteinte (utile pour la motivation / goal gradient). */
+export function longestStreak(entries: DailyEntryRow[]): number {
+  const dates = [...filledDates(entries)].sort();
+  let best = 0;
+  let current = 0;
+  let previous: string | null = null;
+
+  for (const date of dates) {
+    if (previous && toISODate(subDays(parseISO(date), 1)) === previous) {
+      current += 1;
+    } else {
+      current = 1;
+    }
+    best = Math.max(best, current);
+    previous = date;
+  }
+  return best;
 }
 
 // -----------------------------------------------------------------------------
@@ -77,11 +100,12 @@ function avgCategoryOverWindow(
   categoryId: string,
   window: string[],
   values: Map<string, FormValues>,
+  activities: ActivityConfig[],
 ): number {
   const scores: number[] = [];
   for (const d of window) {
     const v = values.get(d);
-    if (v) scores.push(categoryScoreForDay(categoryId, v));
+    if (v) scores.push(categoryScoreForDay(categoryId, v, activities));
   }
   if (scores.length === 0) return 0;
   const mean = scores.reduce((s, x) => s + x, 0) / scores.length;
@@ -90,16 +114,17 @@ function avgCategoryOverWindow(
 
 export function weeklyByCategory(
   entries: DailyEntryRow[],
+  activities: ActivityConfig[] = ACTIVITIES,
   today: string = todayISO(),
 ): CategoryWeekly[] {
-  const values = valuesByDate(entries);
+  const values = valuesByDate(entries, activities);
   const current = lastNDaysISO(7, parseISO(today));
   const previous = lastNDaysISO(7, subDays(parseISO(today), 7));
 
-  return orderedCategories().map((c) => ({
-    category: c.id,
-    current: avgCategoryOverWindow(c.id, current, values),
-    previous: avgCategoryOverWindow(c.id, previous, values),
+  return categoriesFrom(activities).map((category) => ({
+    category,
+    current: avgCategoryOverWindow(category, current, values, activities),
+    previous: avgCategoryOverWindow(category, previous, values, activities),
   }));
 }
 
@@ -115,9 +140,10 @@ export interface MonthPoint {
 
 export function monthlyTrend(
   entries: DailyEntryRow[],
+  activities: ActivityConfig[] = ACTIVITIES,
   today: string = todayISO(),
 ): MonthPoint[] {
-  const completion = completionByDate(entries);
+  const completion = completionByDate(entries, activities);
 
   // Regrouper les complétions par mois 'YYYY-MM'
   const byMonth = new Map<string, number[]>();
@@ -158,12 +184,13 @@ export interface CategoryScore {
 
 export function yearlyByCategory(
   entries: DailyEntryRow[],
+  activities: ActivityConfig[] = ACTIVITIES,
   today: string = todayISO(),
 ): CategoryScore[] {
-  const values = valuesByDate(entries);
+  const values = valuesByDate(entries, activities);
   const window = lastNDaysISO(365, parseISO(today));
-  return orderedCategories().map((c) => ({
-    category: c.id,
-    value: avgCategoryOverWindow(c.id, window, values),
+  return categoriesFrom(activities).map((category) => ({
+    category,
+    value: avgCategoryOverWindow(category, window, values, activities),
   }));
 }

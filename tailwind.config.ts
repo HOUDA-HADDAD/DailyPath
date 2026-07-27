@@ -20,30 +20,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        sage: {
-          50: "#f3f6f4",
-          100: "#e3ebe5",
-          200: "#c7d7cb",
-          300: "#a1bca8",
-          400: "#749b7f",
-          500: "#557d63",
-          600: "#41654e",
-          700: "#355140",
-          800: "#2c4235",
-          900: "#25372d",
-        },
-        sand: {
-          50: "#faf8f4",
-          100: "#f2ede3",
-          200: "#e5d9c6",
-          300: "#d3bf9f",
-        },
-        ink: {
-          700: "#3a3a37",
-          800: "#2a2a28",
-          900: "#1c1c1a",
-        },
-        // Tokens sémantiques (voir globals.css)
+        // Tokens sémantiques (voir globals.css).
+        // L'app n'utilise QUE ces tokens : changer de palette se fait en
+        // modifiant les variables CSS, sans toucher aux composants.
+        // (Les accents d'activité réutilisent les palettes Tailwind natives —
+        // violet, blue, teal, green, amber, rose — via lib/theme/accent.ts.)
         bg: v("--c-bg"),
         surface: v("--c-surface"),
         "surface-2": v("--c-surface-2"),
