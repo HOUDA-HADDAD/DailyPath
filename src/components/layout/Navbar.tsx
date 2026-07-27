@@ -10,7 +10,13 @@ import { ThemeToggle } from "./ThemeToggle";
 
 const ADMIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADMIN === "true";
 
-export function Navbar() {
+/**
+ * `isAdmin` est résolu côté serveur (voir app/(app)/layout.tsx) : l'onglet
+ * Administration n'est donc jamais rendu pour un membre ordinaire, et il
+ * n'apparaît pas brièvement le temps d'une vérification côté client.
+ * Le flag d'environnement seul ne suffit pas : il est global à l'application.
+ */
+export function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
   const { t } = useTranslation();
   const pathname = usePathname();
 
@@ -20,7 +26,9 @@ export function Navbar() {
     { href: "/analytics/weekly", label: t("nav.weekly") },
     { href: "/analytics/yearly", label: t("nav.yearly") },
     { href: "/profile", label: t("nav.profile") },
-    ...(ADMIN_ENABLED ? [{ href: "/admin", label: t("nav.admin") }] : []),
+    ...(ADMIN_ENABLED && isAdmin
+      ? [{ href: "/admin", label: t("nav.admin") }]
+      : []),
   ];
 
   return (
